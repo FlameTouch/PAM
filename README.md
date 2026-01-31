@@ -151,32 +151,6 @@ drink-master/
 └── README.md           # Dokumentacja
 ```
 
-## 🎨 Design
-
-- **Responsywny design** - Dostosowuje się do telefonów, tabletów i desktopów
-- **Material Design** - Nowoczesny, czytelny interfejs
-- **Dark/Light theme** - Przygotowany do rozszerzenia
-- **Accessibility** - Semantyczny HTML, aria-labels
-
-## 📊 Wydajność
-
-Aplikacja została zoptymalizowana pod kątem wydajności:
-
-- **Lazy loading** - Obrazy ładowane na żądanie
-- **Efektywne buforowanie** - Strategie dopasowane do typu zasobu
-- **Minimalne zależności** - Brak zewnętrznych bibliotek
-- **Optymalizacja CSS** - Użycie CSS Variables, minimalne style
-
-### Testowanie wydajności
-
-Użyj narzędzia **Lighthouse** w Chrome DevTools:
-1. Otwórz DevTools (F12)
-2. Przejdź do zakładki "Lighthouse"
-3. Wybierz "Progressive Web App" i "Performance"
-4. Kliknij "Generate report"
-
-## 🔧 Konfiguracja
-
 ### Zmiana API drinków
 
 W pliku `app.js` zmień zmienną:
@@ -202,21 +176,9 @@ W pliku `styles.css` zmień zmienne CSS:
 - Sprawdź konsolę przeglądarki pod kątem błędów
 - Wyczyść cache przeglądarki i zarejestruj Service Worker ponownie
 
-### Geolokalizacja nie działa
-- Sprawdź uprawnienia przeglądarki
-- Upewnij się, że używasz HTTPS (lub localhost)
-
 ### Powiadomienia nie działają
 - Sprawdź uprawnienia przeglądarki
 - Niektóre przeglądarki wymagają interakcji użytkownika przed wyświetleniem promptu
-
-## 📝 Licencja
-
-Ten projekt został stworzony w celach edukacyjnych.
-
-## 👨‍💻 Autor
-
-Projekt stworzony zgodnie z wymaganiami kursu PWA.
 
 ## 🔮 Możliwe rozszerzenia
 
@@ -231,3 +193,4 @@ Projekt stworzony zgodnie z wymaganiami kursu PWA.
 ---
 
 **Uwaga:** Aplikacja wykorzystuje zewnętrzne API (TheCocktailDB) do pobierania danych o drinkach. W trybie offline aplikacja korzysta z zbuforowanych danych lub przykładowych danych.
+
