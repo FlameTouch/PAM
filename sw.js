@@ -65,20 +65,20 @@ self.addEventListener('activate', (event) => {
 });
 
 // Спеціальна обробка API запитів
-// Service Worker може робити запити, але якщо CORS блокує, використовуємо кеш
+// CORS блокує запити, тому використовуємо кеш як основний джерело даних
 async function handleAPIRequest(request) {
-    // Спочатку перевірити кеш - якщо є, повернути одразу
+    // Спочатку перевірити кеш - це наш основний джерело даних
     const cachedResponse = await caches.match(request, { cacheName: API_CACHE });
     if (cachedResponse) {
         console.log('Service Worker: Знайдено в кеші:', request.url);
-        // Оновити кеш у фоновому режимі
-        updateCacheInBackground(request);
+        // Спробувати оновити кеш у фоновому режимі (без блокування відповіді)
+        updateCacheInBackground(request).catch(() => {});
         return cachedResponse;
     }
     
     // Якщо немає в кеші, спробувати отримати з мережі
+    // Навіть якщо CORS блокує, спробуємо (можливо, сервер дозволить)
     try {
-        // Service Worker може робити запити без CORS обмежень
         const networkResponse = await fetch(request.url, {
             method: 'GET',
             headers: {
@@ -95,18 +95,20 @@ async function handleAPIRequest(request) {
             return networkResponse;
         }
     } catch (error) {
-        // Якщо помилка (наприклад, CORS або мережа), використати кеш або порожню відповідь
-        console.log('Service Worker: Помилка мережі:', request.url, error.message);
+        // CORS або інша помилка мережі - це очікувано
+        // Просто повертаємо порожню відповідь, додаток використає прикладні дані
+        console.log('Service Worker: CORS блокує запит, використовую порожню відповідь:', request.url);
     }
     
     // Якщо все не вдалося, повернути порожню відповідь
-    console.log('Service Worker: Немає в кеші та мережа не працює, повертаю порожню відповідь');
+    // Додаток використає прикладні дані з getSampleDrinks()
     return new Response(JSON.stringify({ drinks: [] }), {
         headers: { 'Content-Type': 'application/json' }
     });
 }
 
 // Оновлення кешу у фоновому режимі
+// Спроба оновити кеш, але не блокуємо відповідь, якщо не вдалося
 async function updateCacheInBackground(request) {
     try {
         const networkResponse = await fetch(request.url, {
@@ -123,7 +125,8 @@ async function updateCacheInBackground(request) {
             console.log('Service Worker: Кеш оновлено в фоновому режимі:', request.url);
         }
     } catch (error) {
-        // Ігнорувати помилки оновлення кешу
+        // Ігнорувати помилки оновлення кешу (CORS блокує)
+        // Це нормально, використовуємо кешовані дані
     }
 }
 
@@ -145,8 +148,14 @@ async function networkFirst(request) {
         
         return networkResponse;
     } catch (error) {
-        // Мережа недоступна - шукати в кеші
-        console.log('Service Worker: Мережа не працює, використовую кеш:', request.url);
+        // Мережа недоступна або CORS блокує - шукати в кеші
+        // Це нормальна поведінка, не помилка
+        if (request.url.includes('thecocktaildb.com')) {
+            // Для API запитів це очікувано через CORS
+            console.log('Service Worker: CORS блокує запит до API, використовую кеш:', request.url);
+        } else {
+            console.log('Service Worker: Мережа не працює, використовую кеш:', request.url);
+        }
         
         // Спочатку перевірити API кеш
         const cachedResponse = await caches.match(request, { cacheName: API_CACHE });
