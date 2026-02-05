@@ -35,7 +35,7 @@ function renderDrinks(drinks) {
     drinksListEl.querySelectorAll('.drink-card').forEach(card => {
         card.addEventListener('click', () => {
             const drinkId = card.dataset.drinkId;
-            await showDrinkDetail(drinkId);
+            showDrinkDetail(drinkId);
         });
     });
 
