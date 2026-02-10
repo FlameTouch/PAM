@@ -11,7 +11,6 @@ const STATIC_CACHE_URLS = [
     '/index.html',
     '/styles.css',
     '/app.js',
-    '/drinks.json',
     '/database.js',
     '/api.js',
     '/state.js',
@@ -31,15 +30,15 @@ const STATIC_CACHE_URLS = [
 
 // Подія встановлення Service Worker
 self.addEventListener('install', (event) => {
-    console.log('Service Worker: Встановлення');
+    console.log('Service Worker: Installation');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('Service Worker: Кешування статичних файлів');
+                console.log('Service Worker: Caching static files');
                 return cache.addAll(STATIC_CACHE_URLS).catch((error) => {
-                    console.log('Service Worker: Деякі файли не були закешовані:', error);
+                    console.log('Service Worker: Some files were not cached:', error);
                     return cache.add('/index.html').catch(() => {
-                        console.log('Service Worker: Не вдалося закешувати index.html');
+                        console.log('Service Worker: Failed to cache index.html');
                     });
                 });
             })
@@ -49,13 +48,13 @@ self.addEventListener('install', (event) => {
 
 // Подія активації Service Worker
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker: Активація');
+    console.log('Service Worker: Activation');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE && cacheName !== API_CACHE) {
-                        console.log('Service Worker: Видалення старого кешу:', cacheName);
+                        console.log('Service Worker: Removing old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -64,28 +63,6 @@ self.addEventListener('activate', (event) => {
     );
     return self.clients.claim();
 });
-
-// Спеціальна обробка API запитів
-// CORS блокує запити, тому використовуємо кеш як основний джерело даних
-// Не намагаємося оновлювати кеш, оскільки CORS завжди блокує запити
-async function handleAPIRequest(request) {
-    // Перевірити кеш - це наш основний джерело даних
-    const cachedResponse = await caches.match(request, { cacheName: API_CACHE });
-    if (cachedResponse) {
-        console.log('Service Worker: Знайдено в кеші:', request.url);
-        // Не намагаємося оновлювати кеш, оскільки CORS завжди блокує
-        return cachedResponse;
-    }
-    
-    // Якщо немає в кеші, повернути порожню відповідь
-    // Додаток використає прикладні дані з getSampleDrinks()
-    // Не намагаємося робити мережевий запит, оскільки CORS завжди блокує
-    return new Response(JSON.stringify({ drinks: [] }), {
-        headers: { 'Content-Type': 'application/json' }
-    });
-}
-
-// Функція видалена - не використовується, оскільки CORS завжди блокує API запити
 
 // Стратегія Network First з fallback до Cache
 // Спочатку намагається отримати дані з мережі, якщо не вдається - використовує кеш
@@ -99,25 +76,19 @@ async function networkFirst(request) {
             const cache = await caches.open(API_CACHE);
             const responseClone = networkResponse.clone();
             cache.put(request, responseClone).catch(err => {
-                console.log('Service Worker: Помилка під час кешування:', err);
+                console.log('Service Worker: Error caching:', err);
             });
         }
         
         return networkResponse;
     } catch (error) {
-        // Мережа недоступна або CORS блокує - шукати в кеші
-        // Це нормальна поведінка, не помилка
-        if (request.url.includes('thecocktaildb.com')) {
-            // Для API запитів це очікувано через CORS
-            console.log('Service Worker: CORS блокує запит до API, використовую кеш:', request.url);
-        } else {
-            console.log('Service Worker: Мережа не працює, використовую кеш:', request.url);
-        }
-        
+        // Мережа недоступна - шукати в кеші
+        console.log('Service Worker: Network is not working, using cache:', request.url);
+
         // Спочатку перевірити API кеш
         const cachedResponse = await caches.match(request, { cacheName: API_CACHE });
         if (cachedResponse) {
-            console.log('Service Worker: Знайдено в кеші:', request.url);
+            console.log('Service Worker: Found in cache:', request.url);
             return cachedResponse;
         }
 
@@ -222,7 +193,7 @@ self.addEventListener('fetch', (event) => {
                         if (fallbackResponse) {
                             return fallbackResponse;
                         }
-                        return new Response('Офлайн - Перевірте підключення до інтернету', {
+                        return new Response('Offline - Check your internet connection', {
                             status: 503,
                             statusText: 'Service Unavailable',
                             headers: { 'Content-Type': 'text/html' }
@@ -234,11 +205,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Обробка запитів до API напоїв
-    // Service Worker може робити запити до thecocktaildb.com
-    // Якщо CORS блокує, використаємо кеш
-    if (url.hostname.includes('thecocktaildb.com') || url.pathname.includes('/api/')) {
-        event.respondWith(handleAPIRequest(request));
+    // Обробка запитів до API напоїв (TheCocktailDB przez allorigins.win)
+    if (
+        url.hostname.includes('thecocktaildb.com') ||
+        url.hostname.includes('api.allorigins.win') ||
+        url.pathname.includes('/api/')
+    ) {
+        event.respondWith(networkFirst(request));
         return;
     }
     // Обробка зображень
